@@ -2,7 +2,7 @@ import string
 import random
 
 
-def rand_string(length):
+def generate_random_string(length):
     return "".join(
         random.choice(
             string.ascii_letters + string.digits + string.punctuation
