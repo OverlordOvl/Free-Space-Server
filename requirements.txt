@@ -1,0 +1,7 @@
+twisted
+wheel
+loguru
+setuptools
+black
+pyopenssl
+service_identity
