@@ -18,8 +18,8 @@ def verify(connection, x509, err_num, err_depth, ok):
 
 def init_verification(factory):
     vrt_check = VerificationFactory(
-        'keys/{}.key'.format(factory.key_name),
-        'keys/{}.crt'.format(factory.key_name)
+        'server_data/{}.key'.format(factory.key_name),
+        'server_data/{}.crt'.format(factory.key_name)
     )
 
     certificate = vrt_check.getContext()
@@ -30,6 +30,6 @@ def init_verification(factory):
         )
 
     certificate.load_verify_locations(
-        'KeysModule/keys/{}_ca.crt'.format(factory.key_name)
+        'KeysModule/server_data/{}_ca.crt'.format(factory.key_name)
         )
     return vrt_check
