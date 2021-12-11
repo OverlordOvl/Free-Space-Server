@@ -9,3 +9,5 @@ pycryptodome
 psycopg2-binary
 psycopg2
 SQLAlchemy==1.4.26
+sshtunnel
+python-dotenv
