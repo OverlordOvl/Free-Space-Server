@@ -6,6 +6,6 @@ black
 pyopenssl
 service_identity
 pycryptodome
-psycopg2
 psycopg2-binary
+psycopg2
 SQLAlchemy==1.4.26
