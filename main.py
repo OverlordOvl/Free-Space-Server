@@ -1,7 +1,11 @@
-from Core import settings
-from Core.Factory import FlatFactory, ServerInitializerFactory, MainServer
-from twisted.internet import reactor
+import os
 
+from pyutils.server.controller import FlatFactory, ServerInitializerFactory, MainServer
+from twisted.internet import reactor
+from dotenv import load_dotenv
+
+
+load_dotenv()
 
 main_server_ip = 'localhost'
 
@@ -16,12 +20,12 @@ class Controller:
             FlatFactory(self), 41387
         )
         self.add_channel(
-            MainServer(self), 8000
+            MainServer(self), int(os.getenv('PRIMARY_SERVER_PORT'))
         )
         self.connect_to_main_server(
             main_server_ip, 8000,
             ServerInitializerFactory()
-            )
+        )
         # self.add_channel(
         #     SSLFactory(self), 41387
         #     )

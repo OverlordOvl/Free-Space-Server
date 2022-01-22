@@ -1,33 +1,37 @@
-import _pickle
 import os
 import pickle
 from abc import ABC
 from pathlib import Path
 
+from loguru import logger
 from twisted.internet.protocol import connectionDone
 from twisted.protocols.basic import NetstringReceiver
 
 from twisted.internet import protocol
 
-from Cryptography.crypto_data import (
-    encrypt_data_by_key_with_fernet,
-    decrypt_data_by_key_with_fernet,
+from crypto.crypto_data import (
+    decrypt_data_by_key_with_fernet, encrypt_data_by_key_with_fernet,
 )
 
-from Utils.string_utils import generate_random_string
-
-
-__ALL_PROTOCOLS__ = {}
+from pyutils.string_utils import generate_random_string
 
 from twisted.python import failure
+from dotenv import load_dotenv
 
+from pyutils.server.server import get_server, register_server
+from schema.models import Server
+
+
+load_dotenv()
+
+__ALL_PROTOCOLS__ = {}
 
 FILE_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)))
 PARENT_PATH = str(Path(FILE_PATH).parent)
 
 
-class ClientsController:
 
+class ClientsController:
     def __init__(self):
         self.clients = {}
 
@@ -52,13 +56,12 @@ class User:
 
 
 class SSLProtocol(NetstringReceiver, ABC):
-
     def __init__(self):
         super(SSLProtocol, self).__init__()
         self.first_connection = True
 
     def connectionMade(self):
-        self.factory.clients['no_inited'].append(self)
+        self.factory.clients["no_inited"].append(self)
 
     def stringReceived(self, data):
         self._buffer += data
@@ -66,10 +69,10 @@ class SSLProtocol(NetstringReceiver, ABC):
         self.compare_message(data)
 
     def connectionLost(self, reason=connectionDone):
-        if self in self.factory.clients['no_inited']:
-            self.factory.clients['no_inited'].remove(self)
-        if self.encryption.key in self.factory.clients['inited']:
-            self.factory.clients['inited'].pop(self.encryption.key)
+        if self in self.factory.clients["no_inited"]:
+            self.factory.clients["no_inited"].remove(self)
+        if self.encryption.key in self.factory.clients["inited"]:
+            self.factory.clients["inited"].pop(self.encryption.key)
 
     def convert_message(self, message):
         data = pickle.dumps(message)
@@ -78,7 +81,8 @@ class SSLProtocol(NetstringReceiver, ABC):
 
 
 class FlatProtocol(NetstringReceiver, ABC):
-    """ Обработчик соездиенния между сервером и клиентом. """
+    """Обработчик соездиенния между сервером и клиентом."""
+
     client: User
 
     def __init__(self):
@@ -96,7 +100,6 @@ class FlatProtocol(NetstringReceiver, ABC):
         self.factory.controller.connection_lost(self.client)
 
     def stringReceived(self, data):
-        # self._buffer += data
         self.compare_message(data)
 
 
@@ -113,17 +116,20 @@ class SSLFactory(protocol.Factory):
 
     def __init__(self, root):
         self.root = root
-        self.name = 'SSLFactory'
-        self.key_name = 'controller'
+        self.name = "SSLFactory"
+        self.key_name = "controller"
 
 
 class MainProtocol(NetstringReceiver, ABC):
+
+    # TODO Удалить данный класс. Является тестовым
 
     def connectionMade(self):
         pass
 
     def stringReceived(self, data):
-        cipher = pickle.loads(data)
+        data = pickle.loads(data)
+        ip = decrypt_data_by_key_with_fernet(data['cipher'], data['key'])
 
 
 class MainServer(protocol.Factory):
@@ -134,78 +140,30 @@ class MainServer(protocol.Factory):
 
 
 class ServerInitializerProtocol(NetstringReceiver, ABC):
-    key: bytes
-    invite_code: bytes
+    key: str
     invite_code: str
-
-    def update_key(self):
-        with open(f'{PARENT_PATH}/server_data/server.key', 'wb') as f:
-            f.write(self.key)
-
-    @staticmethod
-    def key_path_exists():
-        return os.path.exists(f'{PARENT_PATH}/server_data/server.key')
-
-    @staticmethod
-    def get_key():
-        if os.path.exists(f'{PARENT_PATH}/server_data/server.key'):
-            with open(f'{PARENT_PATH}/server_data/server.key', 'rb') as f:
-                return f.read()
-        else:
-            return b""
-
-    @staticmethod
-    def get_saved_ip():
-        if os.path.exists(f'{PARENT_PATH}/server_data/server_ip'):
-            with open(f'{PARENT_PATH}/server_data/server_ip', 'rb') as f:
-                return f.read()
-        else:
-            return b""
-
-    def save_new_ip(self):
-        with open(f'{PARENT_PATH}/server_data/server_ip', 'wb') as f:
-            f.write(self.transport.getHost().host.encode())
-
-    def save_invite_code(self):
-        with open(f'{PARENT_PATH}/server_data/invite_code', 'w') as f:
-            f.write(self.invite_code)
-
-    @staticmethod
-    def get_invite_code():
-        if os.path.exists(f'{PARENT_PATH}/server_data/invite_code'):
-            with open(f'{PARENT_PATH}/server_data/invite_code', 'r') as f:
-                return f.read()
-        else:
-            return ""
+    server: Server
 
     def connectionMade(self):
-        key = self.get_key()
         host = self.transport.getHost().host
-        invite_code = self.get_invite_code()
+        server = get_server()
 
-        if not invite_code:
+        if not server:
+            cipher, self.key = encrypt_data_by_key_with_fernet(host)
+            self.key = self.key.decode("utf-8")
             self.invite_code = generate_random_string(25)
-            self.save_invite_code()
-
-        if key:
-            pair = encrypt_data_by_key_with_fernet(host, key)
+            server = register_server(self.key, host, self.invite_code)
         else:
-            pair = encrypt_data_by_key_with_fernet(host)
+            self.invite_code = server.invite_code
+            self.key = server.key
+            cipher = encrypt_data_by_key_with_fernet(host, self.key)[0]
 
-        cipher = pair['cipher']
-
-        self.key = pair['key']
-
-        if not self.key_path_exists():
-            self.update_key()
-            self.save_new_ip()
-
-        else:
-            if self.get_saved_ip() != host:
-                self.save_new_ip()
-
-        data = {'cipher': cipher, 'invite_code': invite_code}
-        self.sendString(pickle.dumps(data))
+        self.server = server
+        logger.success(f"Your invite code is {self.invite_code}")
+        self.sendString(
+            # TODO Удалить ключ key. Является тестовым
+            pickle.dumps({"cipher": cipher, "invite_code": self.invite_code, "key": self.key})
+        )
 
 
 class ServerInitializerFactory(protocol.ReconnectingClientFactory):

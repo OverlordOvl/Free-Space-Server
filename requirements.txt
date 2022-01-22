@@ -8,6 +8,12 @@ service_identity
 pycryptodome
 psycopg2-binary
 psycopg2
-SQLAlchemy==1.4.26
+peewee
+peewee-migrations
 sshtunnel
 python-dotenv
+line_profiler
+memory_profiler
+matplotlib
+scipy
+numpy
