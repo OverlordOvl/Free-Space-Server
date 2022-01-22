@@ -1,34 +1,49 @@
+import os
 import sys
-from datetime import datetime, timezone
+import datetime
+from dotenv import load_dotenv
+from peewee import BooleanField, PostgresqlDatabase
 
-from sqlalchemy import (
-    Column, VARCHAR, BOOLEAN, TIMESTAMP, func, DECIMAL, ForeignKey, UniqueConstraint, INTEGER,
-    select, Index, text, NUMERIC,
+from peewee import CharField, DateTimeField, PrimaryKeyField, Model, IPField, ForeignKeyField
+
+
+load_dotenv()
+
+db_handle = PostgresqlDatabase(
+    database=os.getenv('PGDATABASE'),
+    user=os.getenv('PGUSER'),
+    password=os.getenv('PGPASSWORD'),
+    host=os.getenv('PGHOST')
 )
-from sqlalchemy.dialects.postgresql import ENUM, ARRAY, JSON
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import relationship, backref
 
 
-Base = declarative_base()
-quantity_decimal = DECIMAL(30, 18)
+class DBModel(Model):
+    class Meta:
+        database = db_handle
 
 
-class Id(object):
-    id = Column(INTEGER, primary_key=True)
+class BaseModel(DBModel):
+    id = PrimaryKeyField(null=False)
 
 
-class CreatedTracked(object):
-    created_at = Column(TIMESTAMP(True), nullable=False, server_default=func.now())
-    created_by = Column(VARCHAR, nullable=False, default=sys.argv[0])
+class CreatedTracked(DBModel):
+    created_at = DateTimeField(default=datetime.datetime.now())
+    updated_at = DateTimeField(default=datetime.datetime.now())
 
 
-class Tracked(CreatedTracked):
-    updated_at = Column(TIMESTAMP(True), nullable=False, server_default=func.now(), onupdate=lambda: datetime.now(timezone.utc))
-    updated_by = Column(VARCHAR, nullable=False, default=sys.argv[0])
+class Server(BaseModel):
+    ip = IPField()
+    key = CharField(max_length=44, unique=True)
+    invite_code = CharField(max_length=255, unique=True)
 
 
-class User(Base, Id):
-    __tablename__ = 'user'
-    username = Column(VARCHAR, nullable=False)
+class User(BaseModel):
+    username = CharField(max_length=100, unique=True)
+    password = CharField(max_length=100)
+
+
+class AuthToken(BaseModel):
+    user = ForeignKeyField(User)
+    token = CharField(max_length=100)
+    validity_time = DateTimeField()
+    is_active = BooleanField(default=False)
