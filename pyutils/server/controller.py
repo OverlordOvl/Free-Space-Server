@@ -21,7 +21,7 @@ from dotenv import load_dotenv
 from pyutils.server.server import get_server, register_server
 from schema.models import Server
 
-
+from pyutils.API import controller
 load_dotenv()
 
 __ALL_PROTOCOLS__ = {}
@@ -127,6 +127,9 @@ class ServerInitializerProtocol(NetstringReceiver, ABC):
     server: Server
 
     def connectionMade(self):
+        self.on_init()
+
+    def on_init(self):
         host = self.transport.getHost().host
         server = get_server()
 
@@ -148,9 +151,8 @@ class ServerInitializerProtocol(NetstringReceiver, ABC):
         )
 
     def stringReceived(self, data):
-        print(data)
         data = pickle.loads(data)
-        print(data)
+        controller.validate_code(data)
 
 
 class ServerInitializerFactory(protocol.ReconnectingClientFactory):

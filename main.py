@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-MAIN_SERVER_IP = 'localhost'
+MAIN_SERVER_IP = '5.142.251.207'
 
 
 class Controller:
