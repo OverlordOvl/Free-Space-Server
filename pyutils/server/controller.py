@@ -120,25 +120,6 @@ class SSLFactory(protocol.Factory):
         self.key_name = "controller"
 
 
-class MainProtocol(NetstringReceiver, ABC):
-
-    # TODO Удалить данный класс. Является тестовым
-
-    def connectionMade(self):
-        pass
-
-    def stringReceived(self, data):
-        data = pickle.loads(data)
-        ip = decrypt_data_by_key_with_fernet(data['cipher'], data['key'])
-
-
-class MainServer(protocol.Factory):
-    protocol = MainProtocol
-
-    def __init__(self, root):
-        self.root = root
-
-
 class ServerInitializerProtocol(NetstringReceiver, ABC):
     key: str
     invite_code: str

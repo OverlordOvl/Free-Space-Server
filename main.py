@@ -1,13 +1,13 @@
 import os
 
-from pyutils.server.controller import FlatFactory, ServerInitializerFactory, MainServer
+from pyutils.server.controller import FlatFactory, ServerInitializerFactory
 from twisted.internet import reactor
 from dotenv import load_dotenv
 
 
 load_dotenv()
 
-main_server_ip = 'localhost'
+MAIN_SERVER_IP = 'localhost'
 
 
 class Controller:
@@ -17,13 +17,13 @@ class Controller:
 
     def run_server(self):
         self.add_channel(
-            FlatFactory(self), 41387
+            FlatFactory(self), 80
         )
-        self.add_channel(
-            MainServer(self), int(os.getenv('PRIMARY_SERVER_PORT'))
-        )
+        # self.add_channel(
+        #     MainServer(self), int(os.getenv('PRIMARY_SERVER_PORT'))
+        # )
         self.connect_to_main_server(
-            main_server_ip, 8000,
+            MAIN_SERVER_IP, 8000,
             ServerInitializerFactory()
         )
         # self.add_channel(
@@ -40,7 +40,6 @@ class Controller:
 
     def add_channel(self, factory, port):
         self.reactor.listenTCP(port, factory)
-    #     self.reactor.listenSSL(port, factory, init_verification(factory))
 
 
 Controller().run_server()
