@@ -30,8 +30,8 @@ FILE_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)))
 PARENT_PATH = str(Path(FILE_PATH).parent)
 
 
-
 class ClientsController:
+
     def __init__(self):
         self.clients = {}
 
@@ -56,6 +56,7 @@ class User:
 
 
 class SSLProtocol(NetstringReceiver, ABC):
+
     def __init__(self):
         super(SSLProtocol, self).__init__()
         self.first_connection = True
@@ -145,6 +146,11 @@ class ServerInitializerProtocol(NetstringReceiver, ABC):
             # TODO Удалить ключ key. Является тестовым
             pickle.dumps({"cipher": cipher, "invite_code": self.invite_code, "key": self.key})
         )
+
+    def stringReceived(self, data):
+        print(data)
+        data = pickle.loads(data)
+        print(data)
 
 
 class ServerInitializerFactory(protocol.ReconnectingClientFactory):
