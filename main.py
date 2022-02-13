@@ -32,7 +32,8 @@ class Controller:
         print("Server run")
         self.reactor.run()
 
-    def connect_to_main_server(self, server, port, factory):
+    @staticmethod
+    def connect_to_main_server(server, port, factory):
         reactor.connectTCP(server, port, factory)
 
     def stop_server(self):
