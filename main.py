@@ -1,9 +1,10 @@
-from Core import settings
-from Core.Factory import FlatFactory, ServerInitializerFactory, MainServer
 from twisted.internet import reactor
 
+from pyutils.services.space_protocol import Space
+from loguru import logger
 
-main_server_ip = 'localhost'
+
+main_server_ip = "localhost"
 
 
 class Controller:
@@ -12,30 +13,20 @@ class Controller:
         self.reactor = reactor
 
     def run_server(self):
-        self.add_channel(
-            FlatFactory(self), 41387
-        )
-        self.add_channel(
-            MainServer(self), 8000
-        )
-        self.connect_to_main_server(
-            main_server_ip, 8000,
-            ServerInitializerFactory()
-            )
-        # self.add_channel(
-        #     SSLFactory(self), 41387
-        #     )
-        print("Server run")
+        self.add_channel(Space(), 8000)
+        logger.success("Server run")
         self.reactor.run()
 
-    def connect_to_main_server(self, server, port, factory):
-        reactor.connectTCP(server, port, factory)
+    # def connect_to_main_server(self, server, port, factory):
+    #     reactor.connectTCP(server, port, factory)
 
     def stop_server(self):
         self.reactor.stop()
 
     def add_channel(self, factory, port):
+        logger.info(f"Add chanel on port: {port}. Provide by {factory.__class__.__name__} factory")
         self.reactor.listenTCP(port, factory)
+
     #     self.reactor.listenSSL(port, factory, init_verification(factory))
 
 

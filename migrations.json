@@ -1,0 +1,10 @@
+{
+  "prerun": "# some code here",
+  "directory": "schema/migrations",
+  "history": "migratehistory",
+  "models": [
+    "schema.models.User",
+    "schema.models.AccessToken",
+    "schema.models.RefreshToken"
+  ]
+}

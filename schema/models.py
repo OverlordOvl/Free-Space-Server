@@ -1,34 +1,59 @@
+import os
 import sys
-from datetime import datetime, timezone
+import datetime
+from dotenv import load_dotenv
+from peewee import BooleanField, PostgresqlDatabase
 
-from sqlalchemy import (
-    Column, VARCHAR, BOOLEAN, TIMESTAMP, func, DECIMAL, ForeignKey, UniqueConstraint, INTEGER,
-    select, Index, text, NUMERIC,
+from peewee import (
+    CharField,
+    DateTimeField,
+    PrimaryKeyField,
+    Model,
+    IPField,
+    ForeignKeyField,
 )
-from sqlalchemy.dialects.postgresql import ENUM, ARRAY, JSON
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import relationship, backref
 
 
-Base = declarative_base()
-quantity_decimal = DECIMAL(30, 18)
+load_dotenv()
+
+db_handle = PostgresqlDatabase(
+    database=os.getenv("PGDATABASE"),
+    user=os.getenv("PGUSER"),
+    password=os.getenv("PGPASSWORD"),
+    host=os.getenv("PGHOST"),
+)
 
 
-class Id(object):
-    id = Column(INTEGER, primary_key=True)
+class DBModel(Model):
+    class Meta:
+        database = db_handle
 
 
-class CreatedTracked(object):
-    created_at = Column(TIMESTAMP(True), nullable=False, server_default=func.now())
-    created_by = Column(VARCHAR, nullable=False, default=sys.argv[0])
+class BaseModel(DBModel):
+    id = PrimaryKeyField(null=False)
 
 
-class Tracked(CreatedTracked):
-    updated_at = Column(TIMESTAMP(True), nullable=False, server_default=func.now(), onupdate=lambda: datetime.now(timezone.utc))
-    updated_by = Column(VARCHAR, nullable=False, default=sys.argv[0])
+class CreatedTracked(DBModel):
+    created_at = DateTimeField(default=datetime.datetime.now())
+    updated_at = DateTimeField(default=datetime.datetime.now())
 
 
-class User(Base, Id):
-    __tablename__ = 'user'
-    username = Column(VARCHAR, nullable=False)
+class Expired(DBModel):
+    created_at = DateTimeField(default=datetime.datetime.now())
+    expires_at = DateTimeField()
+    active = BooleanField(default=True)
+
+
+class User(BaseModel):
+    username = CharField(max_length=50, unique=True)
+    personal_token = CharField(max_length=2048, unique=True)
+
+
+class AccessToken(BaseModel, Expired):
+    user = ForeignKeyField(User)
+    value = CharField(max_length=140, unique=True)
+
+
+class RefreshToken(BaseModel, Expired):
+    user = ForeignKeyField(User)
+    value = CharField(max_length=140, unique=True)
